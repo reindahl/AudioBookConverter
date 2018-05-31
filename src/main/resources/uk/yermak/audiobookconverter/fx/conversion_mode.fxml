@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.RadioButton?>
-<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.control.*?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.stage.Screen?>
 <VBox xmlns:fx="http://javafx.com/fxml" fx:controller="uk.yermak.audiobookconverter.fx.ConversionModeController">
@@ -20,4 +19,5 @@
     <RadioButton text="Parallel" toggleGroup="$modeGroup" onAction="#parallelMode" selected="true"/>
     <RadioButton text="Batch" toggleGroup="$modeGroup" onAction="#batchMode"/>
     <RadioButton text="Join" toggleGroup="$modeGroup" onAction="#joinMode"/>
+    <RadioButton text="Parallel Parts" toggleGroup="$modeGroup" onAction="#partsMode"/>
 </VBox>

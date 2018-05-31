@@ -130,4 +130,13 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
+
+    public static void deleteQuietly(String fileName) {
+        FileUtils.deleteQuietly(new File(fileName));
+    }
+
+    public static void deleteQuietly(File file) {
+        FileUtils.deleteQuietly(file);
+    }
+
 }

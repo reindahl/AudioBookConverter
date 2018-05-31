@@ -33,4 +33,8 @@ public class ConversionModeController {
     public void joinMode(ActionEvent actionEvent) {
         mode.set(SINGLE);
     }
+
+    public void partsMode(ActionEvent actionEvent) {
+        mode.set(PARALLEL_PARTS);
+    }
 }

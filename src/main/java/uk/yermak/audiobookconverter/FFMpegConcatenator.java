@@ -75,7 +75,6 @@ public class FFMpegConcatenator implements Concatenator, StateListener {
                 } catch (TimeoutException ignored) {
                 }
             }
-
         } finally {
             Utils.closeSilently(ffmpegProcess);
             Utils.closeSilently(progressParser);

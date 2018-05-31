@@ -34,6 +34,16 @@ public enum ConversionMode {
         public ConversionStrategy createConvertionStrategy() {
             return new ParallelConversionStrategy();
         }
+    }, PARALLEL_PARTS {
+        @Override
+        public boolean supportTags() {
+            return true;
+        }
+
+        @Override
+        public ConversionStrategy createConvertionStrategy() {
+            return new ParallelPartsConversionStrategy();
+        }
     };
 
     public abstract boolean supportTags();

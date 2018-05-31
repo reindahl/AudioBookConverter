@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-public class ParallelConversionStrategy extends AbstractConversionStrategy implements Runnable {
+public class ParallelPartsConversionStrategy extends AbstractConversionStrategy implements Runnable {
 
     private ExecutorService executorService = Executors.newWorkStealingPool();
 
@@ -25,21 +25,36 @@ public class ParallelConversionStrategy extends AbstractConversionStrategy imple
     }
 
     public void run() {
-        List<Future<ConverterOutput>> futures = new ArrayList<>();
         long jobId = System.currentTimeMillis();
 
-        String tempFile = Utils.getTmp(jobId, 999999, ".m4b");
+        int totalParts = 3;
+        MediaInfo maxMedia = maximiseEncodingParameters();
+
+        try {
+            for (int partNo = 1; partNo <= totalParts; partNo++) {
+                long subJobId = jobId + partNo;
+                String tempFile = Utils.getTmp(subJobId, 999999, ".m4b");
+                encodePart(subJobId, tempFile, partNo, maxMedia, totalParts);
+            }
+        } finally {
+            finilize();
+            for (MediaInfo mediaInfo : media) {
+                Utils.deleteQuietly(getTempFileName(jobId, mediaInfo.hashCode(), ".m4b"));
+            }
+        }
+    }
+
+    private void encodePart(long jobId, String tempFile, int partNo, MediaInfo maxMedia, int totalParts) {
+        List<Future<ConverterOutput>> futures = new ArrayList<>();
 
         File fileListFile = null;
         File metaFile = null;
-
-        MediaInfo maxMedia = maximiseEncodingParameters();
 
         try {
             fileListFile = prepareFiles(jobId);
             metaFile = prepareMeta(jobId);
 
-            List<MediaInfo> prioritizedMedia = prioritiseMedia(maxMedia);
+            List<MediaInfo> prioritizedMedia = splitAndPrioritiseMedia(maxMedia, partNo, totalParts);
             for (MediaInfo mediaInfo : prioritizedMedia) {
                 String tempOutput = getTempFileName(jobId, mediaInfo.hashCode(), ".m4b");
                 ProgressCallback callback = progressCallbacks.get(mediaInfo.getFileName());
@@ -61,25 +76,27 @@ public class ParallelConversionStrategy extends AbstractConversionStrategy imple
             artBuilder.coverArt(media, tempFile);
 
             if (canceled) return;
-            FileUtils.moveFile(new File(tempFile), new File(outputDestination));
+            String partName = outputDestination.replace(".m4b", " ,Part " + partNo + ".m4b");
+            FileUtils.moveFile(new File(tempFile), new File(partName));
 
         } catch (InterruptedException | ExecutionException | IOException e) {
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
             StateDispatcher.getInstance().finishedWithError(e.getMessage() + "; " + sw.getBuffer().toString());
         } finally {
-            finilize();
-            for (MediaInfo mediaInfo : media) {
-                Utils.deleteQuietly(getTempFileName(jobId, mediaInfo.hashCode(), ".m4b"));
-            }
             Utils.deleteQuietly(metaFile);
             Utils.deleteQuietly(fileListFile);
         }
     }
 
-    private List<MediaInfo> prioritiseMedia(MediaInfo maxMedia) {
+    //TODO Test it properly
+    private List<MediaInfo> splitAndPrioritiseMedia(MediaInfo maxMedia, int partNo, int totalParts) {
         List<MediaInfo> sortedMedia = new ArrayList<>();
-        for (MediaInfo mediaInfo : media) {
+        int chunk = media.size() / totalParts;
+        int fromIndex = (partNo - 1) * chunk;
+        int toIndex = partNo == totalParts ? media.size() - 1 : partNo * chunk;
+        List<MediaInfo> subMedia = media.subList(fromIndex, toIndex);
+        for (MediaInfo mediaInfo : subMedia) {
             sortedMedia.add(mediaInfo);
             mediaInfo.setFrequency(maxMedia.getFrequency());
             mediaInfo.setChannels(maxMedia.getChannels());
@@ -90,8 +107,12 @@ public class ParallelConversionStrategy extends AbstractConversionStrategy imple
     }
 
 
-    protected String getTempFileName(long jobId, int index, String extension) {
+    protected String getTempFileName(long jobId, int index, String extension, int partNo) {
         return Utils.getTmp(jobId, index, extension);
+    }
+
+    protected String getTempFileName(long jobId, int index, String extension) {
+        return getTempFileName(jobId, index, extension, 0);
     }
 
     public String getAdditionalFinishedMessage() {

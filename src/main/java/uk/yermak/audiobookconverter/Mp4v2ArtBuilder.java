@@ -41,9 +41,7 @@ public class Mp4v2ArtBuilder implements StateListener {
                 updateSinglePoster(poster, i++, outputFileName);
             }
         } finally {
-            for (String tempPoster : tempPosters) {
-                FileUtils.deleteQuietly(new File(tempPoster));
-            }
+            tempPosters.forEach(Utils::deleteQuietly);
         }
     }
 
