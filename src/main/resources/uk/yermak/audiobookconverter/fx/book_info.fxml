@@ -6,21 +6,20 @@
 <?import javafx.stage.Screen?>
 <GridPane xmlns:fx="http://javafx.com/fxml" hgap="5" vgap="5"
           fx:controller="uk.yermak.audiobookconverter.fx.BookInfoController"
-          minHeight="${screen.visualBounds.height*0.2}" prefHeight="${screen.visualBounds.height*0.2}"
           gridLinesVisible="false">
     <fx:define>
         <Screen fx:factory="getPrimary" fx:id="screen"/>
     </fx:define>
 
     <padding>
-        <Insets top="10" right="10" bottom="10" left="10"/>
+        <Insets top="5" right="5" bottom="5" left="5"/>
     </padding>
     <columnConstraints>
         <!--<ColumnConstraints hgrow="SOMETIMES" minWidth="60.0" percentWidth="60.0" prefWidth="60.0"/>-->
-        <ColumnConstraints hgrow="SOMETIMES"/>
+        <ColumnConstraints hgrow="NEVER"/>
         <ColumnConstraints hgrow="ALWAYS"/>
-        <ColumnConstraints hgrow="SOMETIMES"/>
-        <ColumnConstraints hgrow="SOMETIMES"/>
+        <ColumnConstraints hgrow="NEVER"/>
+        <ColumnConstraints hgrow="ALWAYS"/>
     </columnConstraints>
     <children>
 

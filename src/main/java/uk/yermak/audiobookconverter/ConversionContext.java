@@ -1,5 +1,7 @@
 package uk.yermak.audiobookconverter;
 
+import uk.yermak.audiobookconverter.fx.ConversionProgress;
+
 import java.util.LinkedList;
 
 /**
@@ -9,6 +11,7 @@ public class ConversionContext {
 
     private LinkedList<Conversion> conversionQueue = new LinkedList<>();
     private Conversion conversion = new Conversion();
+    private Subscriber subscriber;
 
     public ConversionContext() {
     }
@@ -30,9 +33,9 @@ public class ConversionContext {
         return conversion.getMode();
     }
 
-    public void startConversion(String outputDestination, Refreshable refreshable) {
-        conversion.start(outputDestination, refreshable);
-
+    public void startConversion(String outputDestination, ConversionProgress conversionProgress) {
+        subscriber.addConversionProgress(conversionProgress);
+        conversion.start(outputDestination, conversionProgress);
     }
 
     public Conversion getConversion() {
@@ -45,5 +48,21 @@ public class ConversionContext {
 
     public void stopConversion() {
         conversion.stop();
+    }
+
+    public void subscribeForStart(Subscriber subscriber) {
+        this.subscriber = subscriber;
+    }
+
+    public void finishedConversion() {
+        conversion.finished();
+    }
+
+    public void error(String message) {
+        conversion.error(message);
+    }
+
+    public void resumeConversion() {
+        conversion.resume();
     }
 }

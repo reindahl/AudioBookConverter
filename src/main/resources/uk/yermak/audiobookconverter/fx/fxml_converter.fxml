@@ -3,69 +3,50 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.*?>
 <?import javafx.stage.Screen?>
-<?import uk.yermak.audiobookconverter.fx.ProgressComponent?>
-<VBox fx:controller="uk.yermak.audiobookconverter.fx.Controller"
-      xmlns:fx="http://javafx.com/fxml"
-      fx:id="root"
-      prefHeight="${screen.visualBounds.height * 0.65}" prefWidth="${screen.visualBounds.width * 0.30}"
-      minHeight="${screen.visualBounds.height * 0.65}" minWidth="${screen.visualBounds.width * 0.30}"
+<GridPane fx:controller="uk.yermak.audiobookconverter.fx.Controller"
+          xmlns:fx="http://javafx.com/fxml"
+          fx:id="root"
+          prefHeight="${screen.visualBounds.height * 0.70}" prefWidth="${screen.visualBounds.width * 0.30}"
+
 >
     <fx:define>
         <Screen fx:factory="getPrimary" fx:id="screen"/>
     </fx:define>
 
+    <rowConstraints>
+        <RowConstraints vgrow="NEVER" fillHeight="false"/>
+        <RowConstraints vgrow="ALWAYS" prefHeight="${screen.visualBounds.height*0.45}" maxHeight="Infinity"/>
+        <RowConstraints vgrow="NEVER" fillHeight="false"/>
+    </rowConstraints>
 
     <padding>
         <Insets top="10" right="10" bottom="10" left="10"/>
     </padding>
-
     <fx:include source="links.fxml"/>
 
-    <TitledPane text="Add MP3 files to convert and bring them in right order..." collapsible="false">
-        <fx:include source="files.fxml"/>
-    </TitledPane>
+    <!-- <TitledPane text="Add MP3 files to convert and bring them in right order..." collapsible="false"
+                 GridPane.rowIndex="1" GridPane.fillHeight="true">
+    -->
+    <fx:include source="files.fxml"/>
+    <!--</TitledPane>
+-->
 
-
-    <TabPane minHeight="${screen.visualBounds.height*0.20}" prefHeight="${screen.visualBounds.height*0.20}">
+    <TabPane minHeight="${screen.visualBounds.height*0.20}" prefHeight="${screen.visualBounds.height*0.20}" fx:id="tabs"
+             GridPane.rowIndex="2" GridPane.fillHeight="false">
         <padding>
             <Insets top="10" right="10" bottom="10" left="10"/>
         </padding>
+        <Tab text="Book Info" closable="false" >
+            <fx:include source="book_info.fxml"/>
+        </Tab>
         <Tab text="Conversion mode" closable="false">
             <fx:include source="conversion_mode.fxml"/>
         </Tab>
-        <Tab text="Book Info" closable="false">
-            <fx:include source="book_info.fxml"/>
+        <Tab text="Queue" closable="false" fx:id="queueTab">
+            <ListView fx:id="progressQueue" prefHeight="-Infinity"/>
         </Tab>
     </TabPane>
 
-    <HBox>
-        <Button fx:id="startButton" text="Start" minWidth="${screen.visualBounds.width * 0.09}" disable="true"
-                minHeight="${screen.visualBounds.height*0.05}"
-                alignment="CENTER" onAction="#start">
-            <tooltip>
-                <Tooltip text="Start conversion of files"/>
-            </tooltip>
-        </Button>
-        <Button fx:id="pauseButton" text="Pause" minWidth="${screen.visualBounds.width * 0.09}" disable="true"
-                minHeight="${screen.visualBounds.height*0.05}"
-                alignment="CENTER" onAction="#pause">
-            <tooltip>
-                <Tooltip text="Pause conversion of files"/>
-            </tooltip>
-        </Button>
-        <Button fx:id="stopButton" text="Stop" minWidth="${screen.visualBounds.width * 0.09}" disable="true"
-                minHeight="${screen.visualBounds.height*0.05}"
-                alignment="CENTER" onAction="#stop">
-            <tooltip>
-                <Tooltip text="Stop conversion of files"/>
-            </tooltip>
-        </Button>
-    </HBox>
-
-    <ProgressComponent fx:id="progressBar" prefWidth="${screen.visualBounds.width * 0.30}"
-                       minWidth="${screen.visualBounds.width * 0.30}"/>
-
-</VBox>
+</GridPane>

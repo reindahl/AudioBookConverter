@@ -1,9 +1,6 @@
 package uk.yermak.audiobookconverter.fx;
 
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
+import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -14,15 +11,14 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import org.apache.commons.io.FileUtils;
-import uk.yermak.audiobookconverter.ConversionContext;
-import uk.yermak.audiobookconverter.MediaInfo;
-import uk.yermak.audiobookconverter.MediaLoader;
-import uk.yermak.audiobookconverter.ProgressStatus;
+import uk.yermak.audiobookconverter.*;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import static uk.yermak.audiobookconverter.ProgressStatus.PAUSED;
 
 /**
  * Created by Yermak on 04-Feb-18.
@@ -42,11 +38,20 @@ public class FilesController {
     @FXML
     ListView<MediaInfo> fileList;
 
+
+    @FXML
+    public Button startButton;
+    @FXML
+    public Button pauseButton;
+    @FXML
+    public Button stopButton;
+
     private final ContextMenu contextMenu = new ContextMenu();
 
     @FXML
     public void initialize() {
         ConversionContext context = ConverterApplication.getContext();
+
 
         MenuItem item1 = new MenuItem("Files");
         item1.setOnAction(e -> selectFilesDialog(ConverterApplication.getEnv().getWindow()));
@@ -58,36 +63,18 @@ public class FilesController {
         fileList.setItems(media);
         fileList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
-        context.getConversion().addStatusChangeListener((observable, oldValue, newValue) -> {
-            switch (newValue) {
-                case IN_PROGRESS:
-                case STARTED:
-                    updateUI(true);
-                    break;
-                default:
-                    updateUI(false);
-            }
-        });
+        context.getConversion().addStatusChangeListener((observable, oldValue, newValue) ->
+                updateUI(newValue, media.isEmpty(), fileList.getSelectionModel().getSelectedIndices())
+        );
 
-        media.addListener(new MediaInfoListChangeListener());
-        fileList.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MediaInfo>() {
-            @Override
-            public void changed(ObservableValue<? extends MediaInfo> observable, MediaInfo oldValue, MediaInfo newValue) {
-                ObservableList<Integer> selectedIndices = fileList.getSelectionModel().getSelectedIndices();
-                boolean disableMovement = selectedIndices.size() != 1;
-                upButton.setDisable(disableMovement);
-                downButton.setDisable(disableMovement);
-            }
-        });
+        media.addListener((ListChangeListener<MediaInfo>) c -> updateUI(context.getConversion().getStatus(), c.getList().isEmpty(), fileList.getSelectionModel().getSelectedIndices()));
+
+        fileList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
+                updateUI(context.getConversion().getStatus(), media.isEmpty(), fileList.getSelectionModel().getSelectedIndices())
+        );
+
     }
 
-    private void updateUI(boolean disable) {
-        addButton.setDisable(disable);
-        removeButton.setDisable(disable);
-        clearButton.setDisable(disable);
-        upButton.setDisable(disable);
-        downButton.setDisable(disable);
-    }
 
     @FXML
     protected void addFiles(ActionEvent event) {
@@ -134,6 +121,7 @@ public class FilesController {
 
     public void clear(ActionEvent event) {
         fileList.getItems().clear();
+
     }
 
     public void moveUp(ActionEvent event) {
@@ -151,6 +139,7 @@ public class FilesController {
         }
     }
 
+
     public void moveDown(ActionEvent event) {
         ObservableList<Integer> selectedIndices = fileList.getSelectionModel().getSelectedIndices();
         if (selectedIndices.size() == 1) {
@@ -167,14 +156,102 @@ public class FilesController {
 
     }
 
-    private class MediaInfoListChangeListener implements ListChangeListener<MediaInfo> {
-        @Override
-        public void onChanged(Change<? extends MediaInfo> c) {
-            boolean disable = c.getList().isEmpty();
-            removeButton.setDisable(disable);
-            clearButton.setDisable(disable);
-            upButton.setDisable(disable);
-            downButton.setDisable(disable);
+    public void start(ActionEvent actionEvent) {
+        ConversionContext context = ConverterApplication.getContext();
+        JfxEnv env = ConverterApplication.getEnv();
+
+
+        List<MediaInfo> media = context.getConversion().getMedia();
+        if (media.size() > 0) {
+            AudioBookInfo audioBookInfo = context.getBookInfo();
+            MediaInfo mediaInfo = media.get(0);
+            String outputDestination = null;
+            if (context.getMode().equals(ConversionMode.BATCH)) {
+                DirectoryChooser directoryChooser = new DirectoryChooser();
+                directoryChooser.setTitle("Select destination folder for encoded files");
+                File selectedDirectory = directoryChooser.showDialog(env.getWindow());
+                outputDestination = selectedDirectory.getPath();
+            } else {
+                outputDestination = selectOutputFile(env, audioBookInfo, mediaInfo);
+            }
+            if (outputDestination != null) {
+                long totalDuration = media.stream().mapToLong(MediaInfo::getDuration).sum();
+                ConversionProgress conversionProgress = new ConversionProgress(media.size(), totalDuration);
+
+                context.startConversion(outputDestination, conversionProgress);
+            }
         }
     }
+
+    private String selectOutputFile(JfxEnv env, AudioBookInfo audioBookInfo, MediaInfo mediaInfo) {
+        String outputDestination;
+        final FileChooser fileChooser = new FileChooser();
+        fileChooser.setInitialFileName(Utils.getOuputFilenameSuggestion(mediaInfo.getFileName(), audioBookInfo));
+        fileChooser.setTitle("Save AudioBook");
+        fileChooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("m4b", "*.m4b")
+        );
+        File file = fileChooser.showSaveDialog(env.getWindow());
+        if (file == null) return null;
+        outputDestination = file.getPath();
+        return outputDestination;
+    }
+
+
+    public void pause(ActionEvent actionEvent) {
+        if (ConverterApplication.getContext().getConversion().getStatus().equals(PAUSED)) {
+            ConverterApplication.getContext().resumeConversion();
+        } else {
+            ConverterApplication.getContext().pauseConversion();
+        }
+    }
+
+    public void stop(ActionEvent actionEvent) {
+        ConverterApplication.getContext().stopConversion();
+    }
+
+
+    private void updateUI(ProgressStatus status, Boolean listEmpty, ObservableList<Integer> selectedIndices) {
+
+        Platform.runLater(() -> {
+            switch (status) {
+                case PAUSED:
+                    pauseButton.setText("Resume");
+                    break;
+                case FINISHED:
+                case CANCELLED:
+                case READY:
+                    pauseButton.setText("Pause");
+
+                    addButton.setDisable(false);
+                    clearButton.setDisable(listEmpty);
+
+                    upButton.setDisable(selectedIndices.size() != 1 || selectedIndices.get(0) == 0);
+                    downButton.setDisable(selectedIndices.size() != 1 || selectedIndices.get(0) == fileList.getItems().size() - 1);
+                    removeButton.setDisable(selectedIndices.size() < 1);
+
+                    startButton.setDisable(listEmpty);
+                    pauseButton.setDisable(true);
+                    stopButton.setDisable(true);
+                    break;
+                case IN_PROGRESS:
+                    pauseButton.setText("Pause");
+                    addButton.setDisable(true);
+                    removeButton.setDisable(true);
+                    clearButton.setDisable(true);
+                    upButton.setDisable(true);
+                    downButton.setDisable(true);
+                    startButton.setDisable(true);
+                    pauseButton.setDisable(false);
+                    stopButton.setDisable(false);
+                    break;
+                default: {
+                }
+            }
+
+        });
+    }
+
 }
+
+

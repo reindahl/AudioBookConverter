@@ -1,6 +1,5 @@
 package uk.yermak.audiobookconverter;
 
-import com.freeipodsoftware.abc.Messages;
 import net.bramp.ffmpeg.progress.ProgressParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +34,7 @@ public class Utils {
             try {
                 progressParser.stop();
             } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -115,11 +115,12 @@ public class Utils {
                 }
 
                 return filename;
-            } catch (Exception var7) {
-                throw new RuntimeException(Messages.getString("Util.connotUseFilename") + " " + filename);
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("Cannot use filename" + " " + filename);
             }
         } else {
-            throw new RuntimeException(Messages.getString("Util.connotUseFilename") + " " + filename + " (2)");
+            throw new RuntimeException("Cannot use filename"+ " " + filename + " (2)");
         }
     }
 
@@ -127,6 +128,7 @@ public class Utils {
         try {
             return FileUtils.checksumCRC32(file);
         } catch (IOException e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
