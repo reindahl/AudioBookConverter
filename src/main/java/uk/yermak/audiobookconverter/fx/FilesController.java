@@ -59,19 +59,14 @@ public class FilesController {
         item2.setOnAction(e -> selectFolderDialog(ConverterApplication.getEnv().getWindow()));
         contextMenu.getItems().addAll(item1, item2);
 
-        ObservableList<MediaInfo> media = context.getConversion().getMedia();
-        fileList.setItems(media);
-        fileList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-
-        context.getConversion().addStatusChangeListener((observable, oldValue, newValue) ->
-                updateUI(newValue, media.isEmpty(), fileList.getSelectionModel().getSelectedIndices())
-        );
-
-        media.addListener((ListChangeListener<MediaInfo>) c -> updateUI(context.getConversion().getStatus(), c.getList().isEmpty(), fileList.getSelectionModel().getSelectedIndices()));
+        fileList.setItems(context.getMedia());
 
         fileList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
-                updateUI(context.getConversion().getStatus(), media.isEmpty(), fileList.getSelectionModel().getSelectedIndices())
+                updateUI(context.getConversion().getStatus(), fileList.getItems().isEmpty(), fileList.getSelectionModel().getSelectedIndices())
         );
+
+        fileList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        fileList.getItems().addListener((ListChangeListener<MediaInfo>) c -> updateUI(context.getConversion().getStatus(), c.getList().isEmpty(), fileList.getSelectionModel().getSelectedIndices()));
 
     }
 
@@ -161,8 +156,8 @@ public class FilesController {
         ConversionContext context = ConverterApplication.getContext();
         JfxEnv env = ConverterApplication.getEnv();
 
-
-        List<MediaInfo> media = context.getConversion().getMedia();
+        ObservableList<MediaInfo> media = fileList.getItems();
+//        List<MediaInfo> media = context.getConversion().getMedia();
         if (media.size() > 0) {
             AudioBookInfo audioBookInfo = context.getBookInfo();
             MediaInfo mediaInfo = media.get(0);
@@ -176,10 +171,12 @@ public class FilesController {
                 outputDestination = selectOutputFile(env, audioBookInfo, mediaInfo);
             }
             if (outputDestination != null) {
-                long totalDuration = media.stream().mapToLong(MediaInfo::getDuration).sum();
-                ConversionProgress conversionProgress = new ConversionProgress(media.size(), totalDuration);
-
-                context.startConversion(outputDestination, conversionProgress);
+                context.startConversion(outputDestination, new ArrayList<>(media));
+                fileList.getItems().clear();
+                context.setBookInfo(null);
+                context.getConversion().addStatusChangeListener((observable, oldValue, newValue) ->
+                        updateUI(newValue, media.isEmpty(), fileList.getSelectionModel().getSelectedIndices())
+                );
             }
         }
     }
@@ -242,7 +239,7 @@ public class FilesController {
                     clearButton.setDisable(true);
                     upButton.setDisable(true);
                     downButton.setDisable(true);
-                    startButton.setDisable(true);
+                    startButton.setDisable(false);
                     pauseButton.setDisable(false);
                     stopButton.setDisable(false);
                     break;

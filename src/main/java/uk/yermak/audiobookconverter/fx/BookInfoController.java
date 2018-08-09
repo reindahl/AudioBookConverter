@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import uk.yermak.audiobookconverter.AudioBookInfo;
 import uk.yermak.audiobookconverter.ConversionMode;
 import uk.yermak.audiobookconverter.MediaInfo;
-import uk.yermak.audiobookconverter.ProgressStatus;
 import uk.yermak.audiobookconverter.fx.util.TextFieldValidator;
 
 /**
@@ -37,8 +36,7 @@ public class BookInfoController {
 
     @FXML
     private void initialize() {
-        AudioBookInfo bookInfo = new AudioBookInfo();
-        ConverterApplication.getContext().setBookInfo(bookInfo);
+        AudioBookInfo bookInfo = ConverterApplication.getContext().getBookInfo();
 
         genre.getItems().addAll("Audiobook", "Fantasy", "Sci-fi", "Novel");
 
@@ -59,13 +57,14 @@ public class BookInfoController {
         year.textProperty().addListener(o -> bookInfo.setYear(year.getText()));
         comment.textProperty().addListener(o -> bookInfo.setComment(comment.getText()));
 
-        ObservableList<MediaInfo> media = ConverterApplication.getContext().getConversion().getMedia();
+        ObservableList<MediaInfo> media = ConverterApplication.getContext().getMedia();
         media.addListener((InvalidationListener) observable -> updateTags(media, media.isEmpty()));
 
-        ConverterApplication.getContext().getConversion().addModeChangeListener((observable, oldValue, newValue) -> {
+        ConverterApplication.getContext().addModeChangeListener((observable, oldValue, newValue) -> {
             updateTags(media, ConversionMode.BATCH.equals(newValue));
         });
 
+/*
         ConverterApplication.getContext().getConversion().addStatusChangeListener((observable, oldValue, newValue) -> {
             boolean disable = newValue.equals(ProgressStatus.IN_PROGRESS);
             title.setDisable(disable);
@@ -77,6 +76,7 @@ public class BookInfoController {
                 year.setDisable(disable);
                 comment.setDisable(disable);
         });
+*/
     }
 
     private void updateTags(ObservableList<MediaInfo> media, boolean clear) {

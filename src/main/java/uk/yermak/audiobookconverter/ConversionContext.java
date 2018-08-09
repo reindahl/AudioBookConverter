@@ -1,53 +1,69 @@
 package uk.yermak.audiobookconverter;
 
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import uk.yermak.audiobookconverter.fx.ConversionProgress;
 
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by yermak on 06-Feb-18.
  */
+
+//Mediator pattern implementation
 public class ConversionContext {
 
     private LinkedList<Conversion> conversionQueue = new LinkedList<>();
-    private Conversion conversion = new Conversion();
     private Subscriber subscriber;
+    private AudioBookInfo bookInfo = new AudioBookInfo();
+    private ObservableList<MediaInfo> media = FXCollections.observableArrayList();
+    private SimpleObjectProperty<ConversionMode> mode = new SimpleObjectProperty<>(ConversionMode.PARALLEL);
+
+    public Conversion getConversion() {
+        return conversionQueue.getLast();
+    }
 
     public ConversionContext() {
     }
 
     public void setMode(ConversionMode mode) {
-        conversion.setMode(mode);
+        getConversion().setMode(mode);
     }
 
     public void setBookInfo(AudioBookInfo bookInfo) {
-        conversion.setBookInfo(bookInfo);
+        this.bookInfo = bookInfo;
     }
 
     public AudioBookInfo getBookInfo() {
-        return conversion.getBookInfo();
+        return bookInfo;
     }
 
 
-    public ConversionMode getMode() {
-        return conversion.getMode();
+    public SimpleObjectProperty<ConversionMode> getMode() {
+        return mode;
     }
 
-    public void startConversion(String outputDestination, ConversionProgress conversionProgress) {
+    public void startConversion(String outputDestination, List<MediaInfo> media) {
+        Conversion conversion = new Conversion(media, bookInfo);
+
+
+        //TODO make it lazy via feature
+        long totalDuration = media.stream().mapToLong(MediaInfo::getDuration).sum();
+        ConversionProgress conversionProgress = new ConversionProgress(media.size(), totalDuration);
+
         subscriber.addConversionProgress(conversionProgress);
         conversion.start(outputDestination, conversionProgress);
     }
 
-    public Conversion getConversion() {
-        return conversion;
-    }
-
     public void pauseConversion() {
-        conversion.pause();
+        getConversion().pause();
     }
 
     public void stopConversion() {
-        conversion.stop();
+        getConversion().stop();
     }
 
     public void subscribeForStart(Subscriber subscriber) {
@@ -55,14 +71,26 @@ public class ConversionContext {
     }
 
     public void finishedConversion() {
-        conversion.finished();
+        getConversion().finished();
     }
 
     public void error(String message) {
-        conversion.error(message);
+        getConversion().error(message);
     }
 
     public void resumeConversion() {
-        conversion.resume();
+        getConversion().resume();
+    }
+
+    public ObservableList<MediaInfo> getMedia() {
+        return media;
+    }
+
+    public void setMedia(ObservableList<MediaInfo> media) {
+        this.media = media;
+    }
+
+    public void addModeChangeListener(ChangeListener<ConversionMode> listener) {
+        mode.addListener(listener);
     }
 }
