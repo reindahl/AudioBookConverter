@@ -17,17 +17,17 @@ public class FFMpegLinearConverter implements Concatenator {
     private final StatusChangeListener listener;
     private String metaDataFileName;
     private String fileListFileName;
-    private MediaInfo mediaInfo;
     private Process ffmpegProcess;
     private ProgressParser progressParser;
+    private OutputParameters outputParameters;
     private ProgressCallback callback;
 
 
-    public FFMpegLinearConverter(String outputFileName, String metaDataFileName, String fileListFileName, MediaInfo mediaInfo, ProgressCallback callback) {
+    public FFMpegLinearConverter(String outputFileName, String metaDataFileName, String fileListFileName, OutputParameters outputParameters, ProgressCallback callback) {
         this.outputFileName = outputFileName;
         this.metaDataFileName = metaDataFileName;
         this.fileListFileName = fileListFileName;
-        this.mediaInfo = mediaInfo;
+        this.outputParameters = outputParameters;
         this.callback = callback;
         listener = new StatusChangeListener();
         ConverterApplication.getContext().getConversion().addStatusChangeListener(listener);
@@ -59,9 +59,10 @@ public class FFMpegLinearConverter implements Concatenator {
                     "-i", metaDataFileName,
                     "-map_metadata", "1",
                     "-vn",
-                    "-ar", String.valueOf(mediaInfo.getFrequency()),
-                    "-ac", String.valueOf(mediaInfo.getChannels()),
-//                    "-b:a", String.valueOf(mediaInfo.getBitrate()),
+                    outputParameters.getFFMpegQualityParameter(), outputParameters.getFFMpegQualityValue(),
+                    "-ar", outputParameters.getFFMpegFrequencyValue(),
+                    "-ac", outputParameters.getFFMpegChannelsValue(),
+                    "-cutoff", outputParameters.getCutoffValue(),
                     "-f", "ipod",
                     "-codec:a", "libfdk_aac",
                     "-codec:v", "copy",

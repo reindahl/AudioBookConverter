@@ -1,5 +1,7 @@
 package uk.yermak.audiobookconverter;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
@@ -18,6 +20,8 @@ public class ConversionContext {
 
     private LinkedList<Conversion> conversionQueue = new LinkedList<>();
     private Subscriber subscriber;
+    private ObservableList<MediaInfo> selectedMedia = FXCollections.observableArrayList();
+
     private AudioBookInfo bookInfo = new AudioBookInfo();
     private ObservableList<MediaInfo> media = FXCollections.observableArrayList();
     private SimpleObjectProperty<ConversionMode> mode = new SimpleObjectProperty<>(ConversionMode.PARALLEL);
@@ -92,5 +96,17 @@ public class ConversionContext {
 
     public void addModeChangeListener(ChangeListener<ConversionMode> listener) {
         mode.addListener(listener);
+    }
+
+    public void setOutputParameters(OutputParameters params) {
+        conversion.setOutputParameters(params);
+    }
+
+    public OutputParameters getOutputParameters() {
+        return conversion.getOutputParameters();
+    }
+
+    public ObservableList<MediaInfo> getSelectedMedia() {
+        return selectedMedia;
     }
 }

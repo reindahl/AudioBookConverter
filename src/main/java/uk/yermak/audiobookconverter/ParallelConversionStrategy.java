@@ -10,7 +10,6 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,17 +35,18 @@ public class ParallelConversionStrategy extends AbstractConversionStrategy imple
         File fileListFile = null;
         File metaFile = null;
         try {
-            MediaInfo maxMedia = maximiseEncodingParameters();
+//            MediaInfo maxMedia = maximiseEncodingParameters();
+            outputParameters.updateAuto(media);
 
 
             fileListFile = prepareFiles(jobId);
             metaFile = prepareMeta(jobId);
 
-            List<MediaInfo> prioritizedMedia = prioritiseMedia(maxMedia);
+            List<MediaInfo> prioritizedMedia = prioritiseMedia();
             for (MediaInfo mediaInfo : prioritizedMedia) {
                 String tempOutput = getTempFileName(jobId, mediaInfo.hashCode(), ".m4b");
                 ProgressCallback callback = progressCallbacks.get(mediaInfo.getFileName());
-                Future<ConverterOutput> converterFuture = executorService.submit(new FFMpegConverter(mediaInfo, tempOutput, callback));
+                Future<ConverterOutput> converterFuture = executorService.submit(new FFMpegConverter(outputParameters, mediaInfo, tempOutput, callback));
                 futures.add(converterFuture);
             }
 
@@ -65,7 +65,7 @@ public class ParallelConversionStrategy extends AbstractConversionStrategy imple
             if (listener.isCancelled()) return;
             FileUtils.moveFile(new File(tempFile), new File(outputDestination));
             ConverterApplication.getContext().finishedConversion();
-        } catch (InterruptedException | ExecutionException | IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
@@ -80,13 +80,14 @@ public class ParallelConversionStrategy extends AbstractConversionStrategy imple
         }
     }
 
-    private List<MediaInfo> prioritiseMedia(MediaInfo maxMedia) {
-        List<MediaInfo> sortedMedia = new ArrayList<>();
+    private List<MediaInfo> prioritiseMedia() {
+        List<MediaInfo> sortedMedia = new ArrayList<>(media.size());
+
         for (MediaInfo mediaInfo : media) {
             sortedMedia.add(mediaInfo);
-            mediaInfo.setFrequency(maxMedia.getFrequency());
-            mediaInfo.setChannels(maxMedia.getChannels());
-            mediaInfo.setBitrate(maxMedia.getBitrate());
+//            mediaInfo.setFrequency(maxMedia.getFrequency());
+//            mediaInfo.setChannels(maxMedia.getChannels());
+//            mediaInfo.setBitrate(maxMedia.getBitrate());
         }
         Collections.sort(sortedMedia, (o1, o2) -> (int) (o2.getDuration() - o1.getDuration()));
         return sortedMedia;

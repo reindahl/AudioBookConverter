@@ -6,8 +6,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,17 +64,11 @@ public class Utils {
         if (StringUtils.isNotBlank(bookInfo.getWriter())) {
             builder
                     .append(StringUtils.trim(bookInfo.getWriter()));
-
         }
         if (StringUtils.isNotBlank(bookInfo.getSeries()) && !StringUtils.equals(bookInfo.getSeries(), bookInfo.getTitle())) {
             builder
                     .append(" - [")
                     .append(StringUtils.trim(bookInfo.getSeries()));
-            if (bookInfo.getBookNumber() > 0) {
-                builder
-                        .append(" - ")
-                        .append(bookInfo.getBookNumber());
-            }
             builder.append("] ");
         }
         if (StringUtils.isNotBlank(bookInfo.getTitle())) {
@@ -86,7 +82,18 @@ public class Utils {
                     .append(StringUtils.trim(bookInfo.getNarrator()))
                     .append(")");
         }
+
+        if (bookInfo.getBookNumber() > 0) {
+            builder
+                    .append(", Part ")
+                    .append(bookInfo.getBookNumber());
+        }
+
         String result = builder.toString();
+        char[] toRemove = new char[]{':', '\\', '/', '>', '<', '|', '?', '*', '"'};
+        for (char c : toRemove) {
+            result = StringUtils.remove(result, c);
+        }
         String mp3Filename;
 
         if (StringUtils.isBlank(result)) {
@@ -120,7 +127,7 @@ public class Utils {
                 throw new RuntimeException("Cannot use filename" + " " + filename);
             }
         } else {
-            throw new RuntimeException("Cannot use filename"+ " " + filename + " (2)");
+            throw new RuntimeException("Cannot use filename" + " " + filename + " (2)");
         }
     }
 
@@ -130,6 +137,34 @@ public class Utils {
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
+        }
+    }
+
+    public static File getInitialDirecotory(String sourceFolder) {
+        if (sourceFolder == null) {
+            return new File(System.getProperty("user.home"));
+        }
+        File file = new File(sourceFolder);
+        return file.exists() ? file : getInitialDirecotory(file.getParent());
+    }
+
+    public static String formatTime(double millis) {
+        return formatTime((long) millis);
+    }
+
+    public static String formatTime(long millis) {
+        String hms = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
+                TimeUnit.MILLISECONDS.toMinutes(millis) % TimeUnit.HOURS.toMinutes(1),
+                TimeUnit.MILLISECONDS.toSeconds(millis) % TimeUnit.MINUTES.toSeconds(1));
+        return hms;
+    }
+
+    public static String formatSize(long bytes) {
+        if (bytes == -1L) {
+            return "---";
+        } else {
+            DecimalFormat mbFormat = new DecimalFormat("0");
+            return mbFormat.format((double) bytes / 1048576.0D) + " MB";
         }
     }
 }

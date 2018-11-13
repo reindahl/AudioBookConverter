@@ -36,9 +36,28 @@ public class BookInfoController {
 
     @FXML
     private void initialize() {
-        AudioBookInfo bookInfo = ConverterApplication.getContext().getBookInfo();
+        AudioBookInfo bookInfo = new AudioBookInfo();
+        ConverterApplication.getContext().setBookInfo(bookInfo);
 
-        genre.getItems().addAll("Audiobook", "Fantasy", "Sci-fi", "Novel");
+        String genresProperty = AppProperties.getProperty("genres");
+        if (genresProperty != null) {
+            String[] genres = genresProperty.split("::");
+            Arrays.sort(genres);
+            genre.getItems().addAll(Arrays.asList(genres));
+        }
+
+
+        ConverterApplication.getContext().getConversion().addStatusChangeListener((observable, oldValue, newValue) -> {
+            if (newValue.equals(ProgressStatus.IN_PROGRESS)) {
+                Set<String> g = new TreeSet<>(genre.getItems());
+                g.add(genre.getEditor().getText());
+                genre.getItems().clear();
+                genre.getItems().addAll(g);
+                StringBuffer sb = new StringBuffer();
+                g.forEach(s -> sb.append(s).append("::"));
+                AppProperties.setProperty("genres", sb.toString());
+            }
+        });
 
         bookNo.setTextFormatter(new TextFieldValidator(TextFieldValidator.ValidationModus.MAX_INTEGERS, 3).getFormatter());
         year.setTextFormatter(new TextFieldValidator(TextFieldValidator.ValidationModus.MAX_INTEGERS, 4).getFormatter());
@@ -57,26 +76,22 @@ public class BookInfoController {
         year.textProperty().addListener(o -> bookInfo.setYear(year.getText()));
         comment.textProperty().addListener(o -> bookInfo.setComment(comment.getText()));
 
-        ObservableList<MediaInfo> media = ConverterApplication.getContext().getMedia();
+        ObservableList<MediaInfo> media = ConverterApplication.getContext().getConversion().getMedia();
         media.addListener((InvalidationListener) observable -> updateTags(media, media.isEmpty()));
 
-        ConverterApplication.getContext().addModeChangeListener((observable, oldValue, newValue) -> {
-            updateTags(media, ConversionMode.BATCH.equals(newValue));
-        });
+        ConverterApplication.getContext().getConversion().addModeChangeListener((observable, oldValue, newValue) -> updateTags(media, ConversionMode.BATCH.equals(newValue)));
 
-/*
         ConverterApplication.getContext().getConversion().addStatusChangeListener((observable, oldValue, newValue) -> {
             boolean disable = newValue.equals(ProgressStatus.IN_PROGRESS);
             title.setDisable(disable);
-                writer.setDisable(disable);
-                narrator.setDisable(disable);
-                genre.setDisable(disable);
-                series.setDisable(disable);
-                bookNo.setDisable(disable);
-                year.setDisable(disable);
-                comment.setDisable(disable);
+            writer.setDisable(disable);
+            narrator.setDisable(disable);
+            genre.setDisable(disable);
+            series.setDisable(disable);
+            bookNo.setDisable(disable);
+            year.setDisable(disable);
+            comment.setDisable(disable);
         });
-*/
     }
 
     private void updateTags(ObservableList<MediaInfo> media, boolean clear) {

@@ -1,6 +1,7 @@
 package uk.yermak.audiobookconverter.fx;
 
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -35,6 +36,7 @@ public class FilesController {
     public Button upButton;
     @FXML
     public Button downButton;
+
     @FXML
     ListView<MediaInfo> fileList;
 
@@ -47,6 +49,7 @@ public class FilesController {
     public Button stopButton;
 
     private final ContextMenu contextMenu = new ContextMenu();
+
 
     @FXML
     public void initialize() {
@@ -61,13 +64,22 @@ public class FilesController {
 
         fileList.setItems(context.getMedia());
 
-        fileList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
-                updateUI(context.getConversion().getStatus(), fileList.getItems().isEmpty(), fileList.getSelectionModel().getSelectedIndices())
-        );
+        fileList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            updateUI(context.getConversion().getStatus(), media.isEmpty(), fileList.getSelectionModel().getSelectedIndices());
+            List<MediaInfo> selectedMedia = context.getSelectedMedia();
+            selectedMedia.clear();
+            fileList.getSelectionModel().getSelectedIndices().forEach(i -> selectedMedia.add(media.get(i)));
+        });
 
-        fileList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        fileList.getItems().addListener((ListChangeListener<MediaInfo>) c -> updateUI(context.getConversion().getStatus(), c.getList().isEmpty(), fileList.getSelectionModel().getSelectedIndices()));
-
+        context.getSelectedMedia().addListener((InvalidationListener) observable -> {
+            if (context.getSelectedMedia().isEmpty()) return;
+            List<MediaInfo> change = new ArrayList<>(context.getSelectedMedia());
+            List<MediaInfo> selection = new ArrayList<>(fileList.getSelectionModel().getSelectedItems());
+            if (!change.containsAll(selection) || !selection.containsAll(change)) {
+                fileList.getSelectionModel().clearSelection();
+                change.forEach(m -> fileList.getSelectionModel().select(media.indexOf(m)));
+            }
+        });
     }
 
 
@@ -79,11 +91,15 @@ public class FilesController {
 
     private void selectFolderDialog(Window window) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle("Select folder with MP3 files for conversion");
+        String sourceFolder = AppProperties.getProperty("source.folder");
+        directoryChooser.setInitialDirectory(Utils.getInitialDirecotory(sourceFolder));
+
+        directoryChooser.setTitle("Select folder with MP3/WMA files for conversion");
         File selectedDirectory = directoryChooser.showDialog(window);
         if (selectedDirectory != null) {
             Collection<File> files = FileUtils.listFiles(selectedDirectory, new String[]{"mp3", "wma"}, true);
             processFiles(files);
+            AppProperties.setProperty("source.folder", selectedDirectory.getAbsolutePath());
         }
     }
 
@@ -98,7 +114,8 @@ public class FilesController {
 
     private void selectFilesDialog(Window window) {
         final FileChooser fileChooser = new FileChooser();
-//        fileChooser.setInitialDirectory();
+        String sourceFolder = AppProperties.getProperty("source.folder");
+        fileChooser.setInitialDirectory(Utils.getInitialDirecotory(sourceFolder));
         fileChooser.setTitle("Select MP3/WMA files for conversion");
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("mp3", "*.mp3"),
@@ -107,6 +124,9 @@ public class FilesController {
         List<File> files = fileChooser.showOpenMultipleDialog(window);
         if (files != null) {
             processFiles(files);
+            File firstFile = files.get(0);
+            File parentFile = firstFile.getParentFile();
+            AppProperties.setProperty("source.folder", parentFile.getAbsolutePath());
         }
     }
 
@@ -154,7 +174,6 @@ public class FilesController {
 
     public void start(ActionEvent actionEvent) {
         ConversionContext context = ConverterApplication.getContext();
-        JfxEnv env = ConverterApplication.getEnv();
 
         ObservableList<MediaInfo> media = fileList.getItems();
 //        List<MediaInfo> media = context.getConversion().getMedia();
@@ -163,12 +182,9 @@ public class FilesController {
             MediaInfo mediaInfo = media.get(0);
             String outputDestination = null;
             if (context.getMode().equals(ConversionMode.BATCH)) {
-                DirectoryChooser directoryChooser = new DirectoryChooser();
-                directoryChooser.setTitle("Select destination folder for encoded files");
-                File selectedDirectory = directoryChooser.showDialog(env.getWindow());
-                outputDestination = selectedDirectory.getPath();
+                outputDestination = selectOutputDirectory();
             } else {
-                outputDestination = selectOutputFile(env, audioBookInfo, mediaInfo);
+                outputDestination = selectOutputFile(audioBookInfo, mediaInfo);
             }
             if (outputDestination != null) {
                 context.startConversion(outputDestination, new ArrayList<>(media));
@@ -181,9 +197,26 @@ public class FilesController {
         }
     }
 
-    private String selectOutputFile(JfxEnv env, AudioBookInfo audioBookInfo, MediaInfo mediaInfo) {
+    private String selectOutputDirectory() {
+        JfxEnv env = ConverterApplication.getEnv();
+
         String outputDestination;
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        String outputFolder = AppProperties.getProperty("output.folder");
+        directoryChooser.setInitialDirectory(Utils.getInitialDirecotory(outputFolder));
+        directoryChooser.setTitle("Select destination folder for encoded files");
+        File selectedDirectory = directoryChooser.showDialog(env.getWindow());
+        AppProperties.setProperty("output.folder", selectedDirectory.getAbsolutePath());
+        outputDestination = selectedDirectory.getPath();
+        return outputDestination;
+    }
+
+    private String selectOutputFile(AudioBookInfo audioBookInfo, MediaInfo mediaInfo) {
+        JfxEnv env = ConverterApplication.getEnv();
+
         final FileChooser fileChooser = new FileChooser();
+        String outputFolder = AppProperties.getProperty("output.folder");
+        fileChooser.setInitialDirectory(Utils.getInitialDirecotory(outputFolder));
         fileChooser.setInitialFileName(Utils.getOuputFilenameSuggestion(mediaInfo.getFileName(), audioBookInfo));
         fileChooser.setTitle("Save AudioBook");
         fileChooser.getExtensionFilters().add(
@@ -191,8 +224,9 @@ public class FilesController {
         );
         File file = fileChooser.showSaveDialog(env.getWindow());
         if (file == null) return null;
-        outputDestination = file.getPath();
-        return outputDestination;
+        File parentFolder = file.getParentFile();
+        AppProperties.setProperty("output.folder", parentFolder.getAbsolutePath());
+        return file.getPath();
     }
 
 

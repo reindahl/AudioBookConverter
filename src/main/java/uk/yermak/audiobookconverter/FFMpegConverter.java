@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class FFMpegConverter implements Callable<ConverterOutput>, Converter {
     private final StatusChangeListener listener;
+    private OutputParameters outputParameters;
     private MediaInfo mediaInfo;
     private final String outputFileName;
     private ProgressCallback callback;
@@ -25,12 +26,14 @@ public class FFMpegConverter implements Callable<ConverterOutput>, Converter {
     private ProgressParser progressParser = null;
 
 
-    public FFMpegConverter(MediaInfo mediaInfo, String outputFileName, ProgressCallback callback) {
+    public FFMpegConverter(OutputParameters outputParameters, MediaInfo mediaInfo, String outputFileName, ProgressCallback callback) {
+        this.outputParameters = outputParameters;
         this.mediaInfo = mediaInfo;
         this.outputFileName = outputFileName;
         this.callback = callback;
         listener = new StatusChangeListener();
         ConverterApplication.getContext().getConversion().addStatusChangeListener(listener);
+
     }
 
     public ConverterOutput convertMp3toM4a() throws IOException, InterruptedException {
@@ -52,9 +55,12 @@ public class FFMpegConverter implements Callable<ConverterOutput>, Converter {
                     "-vn",
                     "-codec:a", "libfdk_aac",
                     "-f", "ipod",
+//                    "-vbr","3 ",
 //                    "-b:a", String.valueOf(mediaInfo.getBitrate()),
-                    "-ar", String.valueOf(mediaInfo.getFrequency()),
-                    "-ac", String.valueOf(mediaInfo.getChannels()),
+                    outputParameters.getFFMpegQualityParameter(), outputParameters.getFFMpegQualityValue(),
+                    "-ar", String.valueOf(outputParameters.getFFMpegFrequencyValue()),
+                    "-ac", String.valueOf(outputParameters.getFFMpegChannelsValue()),
+                    "-cutoff", outputParameters.getCutoffValue(),
                     "-progress", progressParser.getUri().toString(),
                     outputFileName
             );
