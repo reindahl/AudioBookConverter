@@ -2,9 +2,9 @@ package uk.yermak.audiobookconverter;
 
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ObservableList;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,14 +16,14 @@ import static uk.yermak.audiobookconverter.ProgressStatus.*;
  */
 public class Conversion {
     private final static ExecutorService executorService = Executors.newCachedThreadPool();
-    private List<MediaInfo> media;
+    private ObservableList<MediaInfo> media;
     private SimpleObjectProperty<ConversionMode> mode = new SimpleObjectProperty<>(ConversionMode.PARALLEL);
     private AudioBookInfo bookInfo;
     private SimpleObjectProperty<ProgressStatus> status = new SimpleObjectProperty<>(this, "status", READY);
     private OutputParameters outputParameters;
 
 
-    public Conversion(List<MediaInfo> media, AudioBookInfo bookInfo) {
+    public Conversion(ObservableList<MediaInfo> media, AudioBookInfo bookInfo) {
         this.media = media;
         this.bookInfo = bookInfo;
     }
@@ -32,7 +32,7 @@ public class Conversion {
         this.mode.set(mode);
     }
 
-    public List<MediaInfo> getMedia() {
+    public ObservableList<MediaInfo> getMedia() {
         return media;
     }
 

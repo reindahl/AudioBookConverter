@@ -1,7 +1,5 @@
 package uk.yermak.audiobookconverter;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
@@ -9,7 +7,6 @@ import javafx.collections.ObservableList;
 import uk.yermak.audiobookconverter.fx.ConversionProgress;
 
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Created by yermak on 06-Feb-18.
@@ -50,7 +47,7 @@ public class ConversionContext {
         return mode;
     }
 
-    public void startConversion(String outputDestination, List<MediaInfo> media) {
+    public void startConversion(String outputDestination, ObservableList<MediaInfo> media) {
         Conversion conversion = new Conversion(media, bookInfo);
 
 
@@ -99,11 +96,11 @@ public class ConversionContext {
     }
 
     public void setOutputParameters(OutputParameters params) {
-        conversion.setOutputParameters(params);
+        getConversion().setOutputParameters(params);
     }
 
     public OutputParameters getOutputParameters() {
-        return conversion.getOutputParameters();
+        return getConversion().getOutputParameters();
     }
 
     public ObservableList<MediaInfo> getSelectedMedia() {

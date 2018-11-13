@@ -2,12 +2,15 @@ package uk.yermak.audiobookconverter.fx;
 
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
-import javafx.collections.ListChangeListener;
+import javafx.beans.property.SimpleListProperty;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Side;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.ListView;
+import javafx.scene.control.MenuItem;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -65,10 +68,10 @@ public class FilesController {
         fileList.setItems(context.getMedia());
 
         fileList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            updateUI(context.getConversion().getStatus(), media.isEmpty(), fileList.getSelectionModel().getSelectedIndices());
+            updateUI(context.getConversion().getStatus(), context.getConversion().getMedia().isEmpty(), fileList.getSelectionModel().getSelectedIndices());
             List<MediaInfo> selectedMedia = context.getSelectedMedia();
             selectedMedia.clear();
-            fileList.getSelectionModel().getSelectedIndices().forEach(i -> selectedMedia.add(media.get(i)));
+            fileList.getSelectionModel().getSelectedIndices().forEach(i -> selectedMedia.add(context.getConversion().getMedia().get(i)));
         });
 
         context.getSelectedMedia().addListener((InvalidationListener) observable -> {
@@ -77,7 +80,7 @@ public class FilesController {
             List<MediaInfo> selection = new ArrayList<>(fileList.getSelectionModel().getSelectedItems());
             if (!change.containsAll(selection) || !selection.containsAll(change)) {
                 fileList.getSelectionModel().clearSelection();
-                change.forEach(m -> fileList.getSelectionModel().select(media.indexOf(m)));
+                change.forEach(m -> fileList.getSelectionModel().select(context.getConversion().getMedia().indexOf(m)));
             }
         });
     }
@@ -187,7 +190,7 @@ public class FilesController {
                 outputDestination = selectOutputFile(audioBookInfo, mediaInfo);
             }
             if (outputDestination != null) {
-                context.startConversion(outputDestination, new ArrayList<>(media));
+                context.startConversion(outputDestination, new SimpleListProperty<>(media));
                 fileList.getItems().clear();
                 context.setBookInfo(null);
                 context.getConversion().addStatusChangeListener((observable, oldValue, newValue) ->

@@ -6,10 +6,12 @@ import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.apache.commons.lang3.StringUtils;
-import uk.yermak.audiobookconverter.AudioBookInfo;
-import uk.yermak.audiobookconverter.ConversionMode;
-import uk.yermak.audiobookconverter.MediaInfo;
+import uk.yermak.audiobookconverter.*;
 import uk.yermak.audiobookconverter.fx.util.TextFieldValidator;
+
+import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Created by Yermak on 04-Feb-18.

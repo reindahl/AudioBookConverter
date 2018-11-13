@@ -54,7 +54,7 @@ public class OutputController {
         ConverterApplication.getContext().setOutputParameters(params);
 
 
-        frequency.getItems().addAll( 8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000);
+        frequency.getItems().addAll(8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000);
         frequency.getSelectionModel().select(8);
 
 
@@ -95,9 +95,9 @@ public class OutputController {
     }
 
     private void updateParameters(ObservableList<MediaInfo> media, boolean empty) {
-        if (empty){
+        if (empty) {
 
-        }else {
+        } else {
             OutputParameters outputParameters = ConverterApplication.getContext().getConversion().getOutputParameters();
             outputParameters.updateAuto(media);
             copyParameters(outputParameters);
